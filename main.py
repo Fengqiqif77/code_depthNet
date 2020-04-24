@@ -75,10 +75,10 @@ def main():
 
     # Add flags
     parser = argparse.ArgumentParser(description="Train RNN depth")
-    parser.add_argument("--dataset_dir", type=str, default="/home/hp/anaconda3/envs/FYQtest/project/DepthNet/training_data/", help="The path to the data directory")
-    parser.add_argument("--checkpoint_dir", type=str, default="/home/hp/anaconda3/envs/FYQtest/project/DepthNet/checkpoint/", help="The path to the checkpoint directory")
+    parser.add_argument("--dataset_dir", type=str, default="/home/hp/anaconda3/envs/FYQtest/project/DepthNet/training_data2/", help="The path to the data directory")
+    parser.add_argument("--checkpoint_dir", type=str, default="/home/hp/anaconda3/envs/FYQtest/project/DepthNet/checkpoint4/", help="The path to the checkpoint directory")
     parser.add_argument("--continue_train", type=bool, default=False, help="Continue train")
-    parser.add_argument("--restore_path", type=str, default="/home/hp/anaconda3/envs/FYQtest/project/DepthNet/checkpoint/", help="The path to load checkpoint")
+    parser.add_argument("--restore_path", type=str, default="/home/hp/anaconda3/envs/FYQtest/project/DepthNet/checkpoint4/", help="The path to load checkpoint")
     parser.add_argument("--eval_set_dir", type=str, default=None, help="The path to the evaluation directory")
     parser.add_argument("--num_epochs", type=int, default=20, help="The number of training epochs")
     parser.add_argument("--summary_freq", type=int, default=100, help="The frequence to summarize and save model")
@@ -118,7 +118,7 @@ def main():
     learning_rate = 0.0001
     beta = 0.9
     global_step = tf.train.get_or_create_global_step()
-    optim = tf.train.AdamOptimizer(learning_rate, beta)
+    optim = tf.train.AdamOptimizer(learning_rate)
 
     controller="/cpu:0"
     with  tf.variable_scope(tf.get_variable_scope()) as outer_scope:

@@ -19,7 +19,7 @@ class RNN_depth_trainer:
                        img_height=128, #192,#
                        img_width=416, #256,#
                        num_views=3,
-                       num_epochs=50,
+                       num_epochs=20,
                        is_training=True):
 
         self.img_height = img_height
@@ -57,35 +57,29 @@ class RNN_depth_trainer:
         # Forward
         # ------------------
         image_seq = data_dict['image_seq']
+
+
         hidden_state = [None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
                         None]  # Initialize hidden state
         hidden_state_pose = [None, None, None, None, None, None, None]
         est_poses = []
 
-        for i in range(self.num_views):
+        #for i in range(self.num_views):
 
-            image = tf.slice(image_seq,
-                             [0, 0, self.img_width * i, 0],
-                             [-1, -1, int(self.img_width), -1])
+           # image = tf.slice(image_seq,
+            #                 [0, 0, self.img_width * i, 0],
+             #                [-1, -1, int(self.img_width), -1])
 
-            image.set_shape([self.batch_size, self.img_height, self.img_width, 3])
+            #image.set_shape([self.batch_size, self.img_height, self.img_width, 3])
 
             # Depth prediction
             #enconderlstm
-            data=tf.expand_dims(image,1)
-            #data=tf.reshape(data,[self.batch_size,3,self.img_height,self.img_width,3])
-            pred_depth= rnn_depth_net_encoderlstm(data, is_training=True)
-            # Pose prediction
-#            pred_pose, hidden_state_pose = pose_net(tf.concat([image,pred_depth],axis=3), hidden_state_pose, is_training=True)
- #           est_poses.append(pred_pose)
+            #data=tf.expand_dims(image,1)
+        data=tf.reshape(image_seq,[self.batch_size,self.num_views,self.img_height,self.img_width,3])
+        tf.summary.image('image', image_seq)
+        pred_depth= rnn_depth_net_encoderlstm(data, is_training=True)
 
-            if i == 0:
-                est_depths = pred_depth
-            else:
-                est_depths = tf.concat([est_depths, pred_depth], axis=2)
-
-
-        return [est_depths] #
+        return [pred_depth] #
 
     # ========================
     # Compute loss
@@ -96,7 +90,9 @@ class RNN_depth_trainer:
         all_losses = []  # keep different losses and visualize in tensorboard
         output_dict = {}
         lamda=tf.constant(0.5)
+        before=data_dict['depth_seq']
         gt_depth =1.0/ data_dict['depth_seq']
+        tf.summary.image('before_depth',before)
         output_dict['depth'] = est_depths
         data_dict['gt']=gt_depth
         data_dict['est']=est_depths
@@ -120,20 +116,12 @@ class RNN_depth_trainer:
                                      [0,0,self.img_width*i,0],
                                      [-1,-1,int(self.img_width),-1])
 
-            image_slice = tf.slice(data_dict['image_seq'],
-                                      [0, 0, self.img_width * i, 0],
-                                      [-1, -1, int(self.img_width), -1])
-
             loss+=compute(gt_depth_slice,depth_slice)
 
         tv = tf.trainable_variables()
         l2loss = 0.005 * tf.reduce_sum([tf.nn.l2_loss(v) for v in tv])
         loss+= l2loss
         all_losses.append(loss)
-        image_slice.set_shape([self.batch_size, self.img_height, self.img_width, 3])
-        tf.summary.image('image', image_slice)
-
-        output_dict['image']=image_slice
 
 
         return  loss,all_losses, output_dict
@@ -163,6 +151,7 @@ class RNN_depth_trainer:
 
 
         depth =self.sub_depth(output_dict['depth'])
+
 
 
         tf.summary.scalar('losses', loss)
@@ -263,8 +252,8 @@ class RNN_depth_trainer:
                                                                    results["loss"],
                                                                    duration))
 
-                        print(results['data_dict']['est'][1])
-                        print(results['data_dict']['gt'][1])
+                        #print(results['data_dict']['est'][1])
+                        #print(results['data_dict']['gt'][1])
                         train_writer.add_summary(results["summary"], step)
 
 

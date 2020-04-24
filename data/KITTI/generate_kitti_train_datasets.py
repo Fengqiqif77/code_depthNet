@@ -11,7 +11,7 @@ def main():
     parser = argparse.ArgumentParser(description="Generates the sun3d training datasets.")
     parser.add_argument("--kitti_path", type=str, default='/media/hp/MITC-GPU-01/kitti_data/' ,help="The path to the kitti data directory")
 
-    parser.add_argument("--outputdir", type=str, default='/home/hp/anaconda3/envs/FYQtest/project/DepthNet/training_data/', help="Output directory for the generated "
+    parser.add_argument("--outputdir", type=str, default='/home/hp/anaconda3/envs/FYQtest/project/DepthNet/training_data2/', help="Output directory for the generated "
 
                                                                                "tfrecords files")
     parser.add_argument("--threads", type=int, default=16, help="Number of threads")
