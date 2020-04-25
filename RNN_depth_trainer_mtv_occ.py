@@ -92,15 +92,17 @@ class RNN_depth_trainer:
         lamda=tf.constant(0.5)
         before=data_dict['depth_seq']
         gt_depth =1.0/ data_dict['depth_seq']
-        tf.summary.image('before_depth',before)
+        tf.summary.image('before_depth',gt_depth)
+        tf.summary.image('inverse-depth',before)
         output_dict['depth'] = est_depths
         data_dict['gt']=gt_depth
         data_dict['est']=est_depths
         loss= tf.zeros([], dtype=tf.float32)
         def compute(gt,est):
             di = tf.log(est)-tf.log(gt)
-            di=tf.where(tf.is_nan(di),tf.zeros_like(di),di)
-            di=tf.where(tf.is_inf(di),tf.zeros_like(di),di)
+            di=tf.where(tf.is_nan(gt),tf.zeros_like(di),di)
+            di = tf.where(tf.is_nan(di), tf.zeros_like(di), di)
+            di = tf.where(tf.is_inf(gt), tf.zeros_like(di), di)
             div = tf.count_nonzero(di, dtype=tf.float32)
             first_part=tf.reduce_sum(tf.pow(di,2))/(div+0.000000001)
             second_part=tf.multiply(tf.pow(tf.reduce_sum(di)/(div+0.000000001),2),lamda)

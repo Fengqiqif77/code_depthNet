@@ -45,7 +45,7 @@ def rnn_depth_net_encoderlstm(current_input,is_training=True):
                             ):
             #I=slim.conv2d(current_input,1,[1,1],stride=2,padding='SAME')
             #cnv1,hidden1 = convLSTM(current_input, hidden_state[0], 32, [7, 7],stride=1, scope='cnv1_lstm')
-            cnv1= ConvLSTM2D(32,[3,3],(1,1),padding='SAME',activation='relu',
+            cnv1= ConvLSTM2D(32,[5,5],(1,1),padding='SAME',activation='relu',
                              recurrent_activation='hard_sigmoid',return_sequences=True,name='cnv1_lstm')(current_input)
 
             #c1=tf.squeeze(cnv1,1)
@@ -147,7 +147,7 @@ def rnn_depth_net_encoderlstm(current_input,is_training=True):
                 i1_in = tf.concat([upcnv1,cv1], axis=3)
                 icnv1  = slim.conv2d(i1_in, 32,  [3, 3], stride=1, scope='icnv1')
                 depth  = slim.conv2d(icnv1, 1,   [1, 1], stride=1,
-                    activation_fn=tf.sigmoid, normalizer_fn=None, scope='disp1')
+                    activation_fn=tf.sigmoid, normalizer_fn=None, scope='disp1')*DISP_SCALING_RESNET50+MIN_DISP
                 if i==0:
                     pred_depth=depth
                 else:
