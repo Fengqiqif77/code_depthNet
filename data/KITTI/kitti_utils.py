@@ -162,8 +162,8 @@ def create_samples_from_sequence_kitti(tfrecordfile, kitti_path, depth_path, seq
     """
 #读取图片
     writer = tf.python_io.TFRecordWriter(tfrecordfile)
-    resizedheight = 128
-    resizedwidth = 416
+    resizedheight = 375
+    resizedwidth = 1242
     generated_groups = 0
 
     date = seq_name[:10]
@@ -283,7 +283,7 @@ def create_samples_from_sequence_kitti(tfrecordfile, kitti_path, depth_path, seq
     return generated_groups
 
 def main():
-    outfile = os.path.join('/home/hp/anaconda3/envs/FYQtest/', 'cam3_' +'2011_09_26_drive_0001_sync'+ ".tfrecords")
+    outfile = os.path.join('/home/hp/anaconda3/envs/FYQtest/test1/', 'cam3_' +'2011_09_26_drive_0001_sync'+ ".tfrecords")
     print('1')
     create_samples_from_sequence_kitti(outfile, '/media/hp/MITC-GPU-01/kitti_data/','/media/hp/MITC-GPU-01/kitti_data/depth/train/','2011_09_26_drive_0001_sync')
 
