@@ -45,16 +45,16 @@ def rnn_depth_net_encoderlstm(current_input,is_training=True):
                             ):
             #I=slim.conv2d(current_input,1,[1,1],stride=2,padding='SAME')
             #cnv1,hidden1 = convLSTM(current_input, hidden_state[0], 32, [7, 7],stride=1, scope='cnv1_lstm')
-            cnv1= ConvLSTM2D(32,[5,5],(1,1),padding='SAME',activation='relu',
+            cnv1= ConvLSTM2D(32,[7,7],(1,1),padding='SAME',activation='relu',
                              recurrent_activation='hard_sigmoid',return_sequences=True,name='cnv1_lstm')(current_input)
 
             #c1=tf.squeeze(cnv1,1)
             #cnv2,hidden2 = convLSTM(cnv1, hidden_state[1], 64, [5, 5],stride=2, scope='cnv2_lstm')
             #cnv2b, hidden2b = convLSTM(cnv2, hidden_state[2], 64, [5, 5], stride=1, scope='cnv2b_lstm')
-            cnv2 = ConvLSTM2D(64, [3, 3], (2, 2), padding='SAME', activation='relu',
+            cnv2 = ConvLSTM2D(64, [5, 5], (2, 2), padding='SAME', activation='relu',
                                recurrent_activation='hard_sigmoid',return_sequences=True,name='cnv2_lstm')(cnv1)
 
-            cnv2b= ConvLSTM2D(64,[3,3],(1,1),padding='SAME',activation='relu',
+            cnv2b= ConvLSTM2D(64,[5,5],(1,1),padding='SAME',activation='relu',
                               recurrent_activation='hard_sigmoid',return_sequences=True,name='cnv2b_lstm')(cnv2)
 
             #c2b=tf.squeeze(cnv2b,1)

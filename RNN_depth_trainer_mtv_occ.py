@@ -1,4 +1,4 @@
-from tensorflow import float32
+from tensorflow import float32, uint8, uint16
 
 from data.data_loader_outdoor import *
 from model import *
@@ -15,9 +15,9 @@ class RNN_depth_trainer:
     # ========================
     def initDataloader(self,
                        dataset_dir,
-                       batch_size=3,
-                       img_height=128, #192,#
-                       img_width=416, #256,#
+                       batch_size=1,
+                       img_height=375, #192,#
+                       img_width=1242, #256,#
                        num_views=3,
                        num_epochs=20,
                        is_training=True):
@@ -53,28 +53,8 @@ class RNN_depth_trainer:
     # ========================
     def construct_model(self, data_dict):
 
-        # ------------------
-        # Forward
-        # ------------------
-        image_seq = data_dict['image_seq']
-
-
-        hidden_state = [None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-                        None]  # Initialize hidden state
-        hidden_state_pose = [None, None, None, None, None, None, None]
-        est_poses = []
-
-        #for i in range(self.num_views):
-
-           # image = tf.slice(image_seq,
-            #                 [0, 0, self.img_width * i, 0],
-             #                [-1, -1, int(self.img_width), -1])
-
-            #image.set_shape([self.batch_size, self.img_height, self.img_width, 3])
-
-            # Depth prediction
-            #enconderlstm
-            #data=tf.expand_dims(image,1)
+        image_seq=data_dict['image_seq']
+        #image_slice =tf.slice( data_dict['image_seq'],[0,0,0,0],[-1,-1,int(self.img_width),-1])
         data=tf.reshape(image_seq,[self.batch_size,self.num_views,self.img_height,self.img_width,3])
         tf.summary.image('image', image_seq)
         pred_depth= rnn_depth_net_encoderlstm(data, is_training=True)
@@ -85,44 +65,41 @@ class RNN_depth_trainer:
     # Compute loss
     # ========================
     def compute_loss(self, estimates,  data_dict, global_step): #
-
         est_depths = estimates[0]
         all_losses = []  # keep different losses and visualize in tensorboard
         output_dict = {}
         lamda=tf.constant(0.5)
         before=data_dict['depth_seq']
         gt_depth =1.0/ data_dict['depth_seq']
-        tf.summary.image('before_depth',gt_depth)
+        #tf.summary.image('before_depth',gt_depth)
         tf.summary.image('inverse-depth',before)
         output_dict['depth'] = est_depths
+        output_dict['gt']=gt_depth
         data_dict['gt']=gt_depth
         data_dict['est']=est_depths
-        loss= tf.zeros([], dtype=tf.float32)
+        data_dict['est_inver']=1.0/est_depths
         def compute(gt,est):
-            di = tf.log(est)-tf.log(gt)
-            di=tf.where(tf.is_nan(gt),tf.zeros_like(di),di)
-            di = tf.where(tf.is_nan(di), tf.zeros_like(di), di)
-            di = tf.where(tf.is_inf(gt), tf.zeros_like(di), di)
-            div = tf.count_nonzero(di, dtype=tf.float32)
-            first_part=tf.reduce_sum(tf.pow(di,2))/(div+0.000000001)
-            second_part=tf.multiply(tf.pow(tf.reduce_sum(di)/(div+0.000000001),2),lamda)
-            l = first_part-second_part
-            return l
+           mask = tf.where(gt == 0, tf.zeros_like(est), tf.ones_like(est))
+           div = tf.reduce_sum(mask)
+           est = 1.0 / est
+           gt = 1.0 / gt
+           est = tf.multiply(est, mask)
+           gt = tf.multiply(gt, mask)
+           di = tf.log(est) - tf.log(gt)
+           di = tf.where(tf.is_nan(gt), tf.zeros_like(di), di)
+           di = tf.where(tf.is_inf(di), gt, di)
+           di = tf.where(tf.is_nan(di), gt, di)
 
-        for i in range(self.num_views):
-            depth_slice = tf.slice(est_depths,
-                                   [0, 0, self.img_width * i, 0],
-                                   [-1, -1, int(self.img_width), -1])
+           first_part=tf.reduce_sum(tf.pow(di,2))/div
+           second_part=tf.multiply(tf.pow(tf.reduce_sum(di)/div,2),lamda)
+           l = first_part-second_part
+           return l
+        loss=10*compute(gt_depth,est_depths)
 
-            gt_depth_slice = tf.slice(gt_depth,
-                                     [0,0,self.img_width*i,0],
-                                     [-1,-1,int(self.img_width),-1])
-
-            loss+=compute(gt_depth_slice,depth_slice)
-
-        tv = tf.trainable_variables()
-        l2loss = 0.005 * tf.reduce_sum([tf.nn.l2_loss(v) for v in tv])
-        loss+= l2loss
+        #tv = tf.trainable_variables()
+        #l2loss = 0.005 * tf.reduce_sum([tf.nn.l2_loss(v) for v in tv])
+        #tf.summary.scalar('l2',l2loss)
+        #loss+= l2loss
         all_losses.append(loss)
 
 
@@ -132,10 +109,10 @@ class RNN_depth_trainer:
                                [0, 0, self.img_width * 0, 0],
                                [-1, -1, int(self.img_width), -1])
         depth_slice2 = tf.slice(est_depths,
-                               [0, 0, self.img_width * 1, 0],
+                               [0, 0, self.img_width * 5, 0],
                                [-1, -1, int(self.img_width), -1])
         depth_slice3 = tf.slice(est_depths,
-                               [0, 0, self.img_width * 2, 0],
+                               [0, 0, self.img_width * 9, 0],
                                [-1, -1, int(self.img_width), -1])
         depth = 1.0/tf.concat([depth_slice1,depth_slice2,depth_slice3],axis=2)
         return depth
@@ -152,12 +129,13 @@ class RNN_depth_trainer:
 
 
 
-        depth =self.sub_depth(output_dict['depth'])
-
+        depth =1.0/output_dict['depth']
 
 
         tf.summary.scalar('losses', loss)
         tf.summary.image('est_depth', depth)
+
+
 
 
         # Distinguish different losses
@@ -242,12 +220,14 @@ class RNN_depth_trainer:
 
                     total_time += duration
 
+
+
                     if step % args.eval_freq == 0 and args.eval_set_dir is not None:
                         print('Step %d: eval loss = %.5f (%.3f sec)' % (step,
                                                                         results["loss"],
                                                                         duration))
 
-                        eval_writer.add_summary(results["summary"], step)
+
 
                     elif step % args.summary_freq == 0:
                         print('Step %d: loss = %.5f (%.3f sec)' % (step,
@@ -259,9 +239,28 @@ class RNN_depth_trainer:
                         train_writer.add_summary(results["summary"], step)
 
 
+
                     # Save latest model
                     if step % args.save_latest_freq == 0:
                         self.save(sess, args.checkpoint_dir, step, saver)
+
+                        eval_writer.add_summary(results["summary"], step)
+
+                        gt = results['data_dict']['depth_seq'][0]
+                        est = tf.cast(results['data_dict']['est_inver'][0], uint8)
+                        gt_raw = tf.image.encode_png(gt)
+                        est_raw = tf.image.encode_png(est)
+                        with tf.io.gfile.GFile(
+                               '/home/hp/anaconda3/envs/FYQtest/project/DepthNet/image/gt/gt' + str(step) + '.png',
+                                'wb') as gt_fiel:
+                            gt_fiel.write(gt_raw.eval())
+                        with tf.io.gfile.GFile(
+                                '/home/hp/anaconda3/envs/FYQtest/project/DepthNet/image/est/est' + str(step) + '.png',
+                                'wb') as est_file:
+                            est_file.write(est_raw.eval())
+                        print('1')
+
+
 
                     step += 1
 
