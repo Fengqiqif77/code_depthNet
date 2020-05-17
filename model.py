@@ -7,7 +7,7 @@ import BasicConvLSTMCell
 
 
 DISP_SCALING_RESNET50 = 10.0
-MIN_DISP = 0.01
+MIN_DISP = 0.0125
 
 def resize_like(inputs, ref):
     iH, iW = inputs.get_shape()[1], inputs.get_shape()[2]
